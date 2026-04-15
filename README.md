@@ -13,3 +13,10 @@ V1\Euglena_circle_dark\Euglena_circle_dark
     ＼2023_06_26_Euglena_11
 
 V1\Euglena_grad_lateral\Euglena_grad_lateral
+
+
+Env:
+
+conda create -n bio_env python=3.11
+conda activate bio_env
+pip install numpy pandas trackpy opencv-python matplotlib
