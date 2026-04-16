@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import trackpy as tp
 import matplotlib.pyplot as plt
+video_file = '/mnt/j/BiologicalPhysics/V1/Euglena_circle_light/Euglena_circle_light/2023_06_26_Euglena_36/2023_06_26_Euglena_36.h264'
+csv_file = 'Euglena_circle_light_2023_06_26_Euglena_36.csv'
 
 # ==========================================
 # 1. 影像預處理與座標提取 (限制前 500 幀)
@@ -103,31 +105,38 @@ def calculate_movement_angles(df):
 # 執行
 # ==========================================
 if __name__ == "__main__":
-    video_file = '/mnt/j/BiologicalPhysics/V1/Euglena_grad_lateral/Euglena_grad_lateral/2023_06_15_Euglena_13/video.h264'
-    
+
     raw_points = extract_positions(video_file)
     
     if not raw_points.empty:
         tracks = link_data(raw_points)
         final_data = calculate_movement_angles(tracks)
         
-        # 存檔
-        final_data.to_csv('euglena_500_frames.csv', index=False)
-        print("前 500 幀分析完成！數據存至 euglena_500_frames.csv")
+        # 存檔# 存檔並限制小數點後三位
+        final_data.to_csv(csv_file, index=False, float_format='%.3f')
+        print("前 %d 幀分析完成！數據存至 euglena_500_frames.csv")
         
         # 視覺化 (使用 headless 模式存成圖片，避免 WSL 顯示問題)
         print("正在繪製軌跡圖並存為 png...")
         plt.figure(figsize=(10, 8))
-        for p_id in final_data['particle'].unique()[:10]: # 畫前10條
-            p_data = final_data[final_data['particle'] == p_id]
-            plt.plot(p_data['x'], p_data['y'], label=f'ID:{p_id}')
-        plt.title("Trajectories (First 500 Frames)")
-        plt.xlabel("X")
-        plt.ylabel("Y")
-        plt.legend()
-        plt.grid(True)
-        # 改為直接存檔，確保你在 WSL 可以直接拿到圖
-        plt.savefig('trajectories_500.png', dpi=300) 
+        # 1. 統計每隻眼蟲出現的次數 (即軌跡長度)
+        # 2. 取得前 20 名最長壽的 particle ID
+        top_20_particles = final_data['particle'].value_counts().head(20).index
+
+        plt.figure(figsize=(12, 10))
+        for p_id in top_20_particles:
+            # 提取該 ID 的數據並確保按時間排序
+            p_data = final_data[final_data['particle'] == p_id].sort_values('frame')
+            plt.plot(p_data['x'], p_data['y'], label=f'ID:{p_id}', alpha=0.8)
+
+        plt.title("Top 20 Longest Trajectories of Euglena")
+        plt.xlabel("X (pixels)")
+        plt.ylabel("Y (pixels)")
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small', ncol=2)
+        plt.grid(True, linestyle=':', alpha=0.6)
+        plt.tight_layout()
+        plt.savefig('trajectories_top20.png', dpi=300)
+        # plt.show()
         print("圖片已存至 trajectories_500.png")
     else:
         print("未抓取到資料。")
